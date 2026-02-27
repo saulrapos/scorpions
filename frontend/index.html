@@ -3,114 +3,168 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scorpions - Inteligencia Documental</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 900px; margin: auto; padding: 40px; background: #f0f2f5; color: #333; }
-        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h1 { color: #1a73e8; border-bottom: 2px solid #1a73e8; padding-bottom: 10px; }
-        .upload-section, .search-section { margin-bottom: 30px; padding: 20px; border: 1px dashed #ccc; border-radius: 8px; }
-        input[type="text"] { width: 75%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; }
-        button { padding: 12px 20px; cursor: pointer; background: #1a73e8; color: white; border: none; border-radius: 5px; font-weight: bold; }
-        button:hover { background: #1557b0; }
-        .result-card { background: #fff; border-left: 5px solid #1a73e8; padding: 15px; margin-top: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .filename { font-weight: bold; color: #1a73e8; font-size: 0.9em; }
-        .score { float: right; font-size: 0.8em; color: #28a745; }
-        .text-content { margin-top: 10px; font-size: 0.95em; line-height: 1.5; }
-    </style>
+    <title>Nexus - Búsqueda Documental IA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body>
-    <div class="container">
-        <h1>Nexus Scorpions</h1>
-        
-        <div class="upload-section">
-            <h3>Cargar Documentación (Archivos o Carpetas enteras)</h3>
-            <input type="file" id="fileInput" webkitdirectory directory multiple>
-            <button onclick="uploadFiles()">Indexar Contenido</button>
-            <p id="uploadStatus" style="font-size: 0.8em;"></p>
-        </div>
+<body class="bg-slate-50 min-h-screen font-sans text-slate-800">
 
-        <div class="search-section">
-            <h3>Buscador Semántico</h3>
-            <input type="text" id="searchInput" placeholder="Haz una pregunta sobre tus documentos...">
-            <button onclick="performSearch()">Consultar</button>
-        </div>
+<nav class="bg-white shadow-sm py-4 px-8 flex justify-between items-center">
+    <div class="flex items-center gap-2">
+        <i class="fa-solid fa-layer-group text-blue-600 text-2xl"></i>
+        <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">Nexus</h1>
+    </div>
+    <div class="text-sm font-medium text-slate-500">HackUDC 2026 - Equipo Scorpions</div>
+</nav>
 
-        <div id="resultsArea">
+<main class="max-w-4xl mx-auto mt-12 px-4">
+
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mb-8">
+        <h2 class="text-lg font-semibold mb-4"><i class="fa-solid fa-cloud-arrow-up mr-2 text-blue-500"></i>1. Sube un documento</h2>
+        <div class="flex items-center gap-4">
+            <input type="file" id="fileInput" accept=".pdf" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all"/>
+            <button id="btnUpload" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full font-medium transition-colors whitespace-nowrap">
+                Subir e Indexar
+            </button>
+        </div>
+        <p id="uploadStatus" class="text-sm mt-3 text-emerald-600 hidden font-medium"></p>
+    </div>
+
+    <div class="bg-white p-8 rounded-xl shadow-xl border border-slate-100 shadow-blue-900/5">
+        <h2 class="text-2xl font-bold mb-2 text-center">¿Qué necesitas encontrar hoy?</h2>
+        <p class="text-slate-500 text-center mb-6">Busca por concepto, no solo por palabras clave. La IA entenderá el contexto.</p>
+
+        <div class="relative max-w-2xl mx-auto">
+            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+            </div>
+            <input type="text" id="searchInput" placeholder="Ej: ¿Cuáles son las condiciones de penalización del contrato?" class="block w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all shadow-inner">
+            <button id="btnSearch" class="absolute inset-y-2 right-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 rounded-xl font-medium transition-colors">
+                Buscar
+            </button>
         </div>
     </div>
 
-    <script>
-        const API_URL = "http://localhost:8000/api";
+    <div id="resultsContainer" class="mt-8 space-y-4 hidden">
+        <h3 class="text-lg font-semibold text-slate-700 mb-4">Resultados encontrados:</h3>
+        <div id="resultsList" class="space-y-4">
+        </div>
+    </div>
 
-        async function uploadFiles() {
-            const fileInput = document.getElementById('fileInput');
-            const files = fileInput.files;
-            
-            if (files.length === 0) return alert("Selecciona archivos o una carpeta");
+</main>
 
-            const uploadStatus = document.getElementById('uploadStatus');
-            let successCount = 0;
-            let errorCount = 0;
-            
-            uploadStatus.innerText = "Procesando archivos... Por favor, espera.";
+<script>
+    const API_URL = "http://127.0.0.1:8000";
 
-            // Iteramos sobre todos los archivos de la carpeta
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                const ext = file.name.split('.').pop().toLowerCase();
-                
-                // Ignoramos formatos no compatibles automáticamente
-                if (!['pdf', 'docx', 'txt', 'csv'].includes(ext)) {
-                    continue; 
-                }
+    // --- 1. LÓGICA DE SUBIDA ---
+    document.getElementById('btnUpload').addEventListener('click', async () => {
+        const fileInput = document.getElementById('fileInput');
+        const statusText = document.getElementById('uploadStatus');
+        const btn = document.getElementById('btnUpload');
 
-                const formData = new FormData();
-                formData.append('file', file);
-                
-                uploadStatus.innerText = `Subiendo y procesando: ${file.name} (${i + 1}/${files.length})...`;
-
-                try {
-                    const response = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
-                    if (response.ok) {
-                        successCount++;
-                    } else {
-                        errorCount++;
-                    }
-                } catch (error) {
-                    errorCount++;
-                }
-            }
-            
-            uploadStatus.innerText = `✅ Proceso finalizado. ${successCount} archivos indexados correctamente. ${errorCount > 0 ? '(' + errorCount + ' errores)' : ''}`;
+        if (fileInput.files.length === 0) {
+            alert("Por favor, selecciona un PDF primero.");
+            return;
         }
 
-        async function performSearch() {
-            const query = document.getElementById('searchInput').value;
-            const resultsArea = document.getElementById('resultsArea');
-            resultsArea.innerHTML = "Buscando en la base vectorial...";
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
 
-            try {
-                const response = await fetch(`${API_URL}/search`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pregunta: query })
-                });
-                const data = await response.json();
-                
-                resultsArea.innerHTML = "";
+        btn.innerText = "Procesando IA...";
+        btn.disabled = true;
+        statusText.classList.remove('hidden');
+        statusText.className = "text-sm mt-3 text-blue-600 font-medium animate-pulse";
+        statusText.innerText = "Leyendo documento y generando vectores...";
+
+        try {
+            const response = await fetch(`${API_URL}/api/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                statusText.className = "text-sm mt-3 text-emerald-600 font-medium";
+                statusText.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> ¡Listo! ${data.chunks_indexados} fragmentos indexados correctamente.`;
+            } else {
+                statusText.className = "text-sm mt-3 text-red-600 font-medium";
+                statusText.innerText = "Error: " + data.detail;
+            }
+        } catch (error) {
+            statusText.className = "text-sm mt-3 text-red-600 font-medium";
+            statusText.innerText = "Error de conexión con el servidor. ¿Está encendido el backend?";
+        } finally {
+            btn.innerText = "Subir e Indexar";
+            btn.disabled = false;
+            fileInput.value = ""; // Limpiar input
+        }
+    });
+
+    // --- 2. LÓGICA DE BÚSQUEDA ---
+    document.getElementById('btnSearch').addEventListener('click', realizarBusqueda);
+    document.getElementById('searchInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') realizarBusqueda();
+    });
+
+    async function realizarBusqueda() {
+        const query = document.getElementById('searchInput').value;
+        const btn = document.getElementById('btnSearch');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultsList = document.getElementById('resultsList');
+
+        if (!query.trim()) return;
+
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+        resultsContainer.classList.add('hidden');
+        resultsList.innerHTML = '';
+
+        try {
+            const response = await fetch(`${API_URL}/api/search`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pregunta: query })
+            });
+
+            const data = await response.json();
+
+            if (data.resultados && data.resultados.length > 0) {
                 data.resultados.forEach(res => {
-                    if (res.distancia < 1.4) { // Margen de relevancia más amplio
-                        resultsArea.innerHTML += `
-                            <div class="result-card">
-                                <span class="filename">📄 ${res.archivo}</span>
-                                <div class="text-content">${res.texto}</div>
-                            </div>`;
-                    }
+                    // Crear tarjeta para cada resultado
+                    const card = document.createElement('div');
+                    card.className = "bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow";
+
+                    // Calculamos un % de coincidencia falso/visual basado en la distancia para que quede "Pro"
+                    const score = Math.max(1, 99 - (res.distancia * 50)).toFixed(0);
+
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-file-pdf text-red-500 text-xl"></i>
+                                <span class="font-semibold text-slate-800">${res.archivo}</span>
+                            </div>
+                            <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full">
+                                <i class="fa-solid fa-bolt mr-1"></i> ${score}% Relevancia
+                            </span>
+                        </div>
+                        <p class="text-slate-600 text-sm leading-relaxed border-l-4 border-indigo-200 pl-4 italic">
+                            "...${res.texto}..."
+                        </p>
+                    `;
+                    resultsList.appendChild(card);
                 });
-            } catch (error) {
-                resultsArea.innerHTML = "❌ Error en la conexión con la IA.";
+                resultsContainer.classList.remove('hidden');
+            } else {
+                resultsList.innerHTML = '<p class="text-slate-500 text-center py-4">No se encontró información relevante para tu pregunta.</p>';
+                resultsContainer.classList.remove('hidden');
             }
+        } catch (error) {
+            alert("Error al buscar. Comprueba la conexión con el backend.");
+        } finally {
+            btn.innerText = "Buscar";
+            btn.disabled = false;
         }
-    </script>
+    }
+</script>
 </body>
 </html>
