@@ -23,9 +23,9 @@
         <h1>Nexus Scorpions</h1>
         
         <div class="upload-section">
-            <h3>Cargar Documentación (PDF)</h3>
-            <input type="file" id="fileInput">
-            <button onclick="uploadFile()">Indexar con IA</button>
+            <h3>Cargar Documentación (Archivos o Carpetas enteras)</h3>
+            <input type="file" id="fileInput" webkitdirectory directory multiple>
+            <button onclick="uploadFiles()">Indexar Contenido</button>
             <p id="uploadStatus" style="font-size: 0.8em;"></p>
         </div>
 
@@ -36,28 +36,52 @@
         </div>
 
         <div id="resultsArea">
-            </div>
+        </div>
     </div>
 
     <script>
         const API_URL = "http://localhost:8000/api";
 
-        async function uploadFile() {
+        async function uploadFiles() {
             const fileInput = document.getElementById('fileInput');
-            if (!fileInput.files[0]) return alert("Selecciona un archivo");
-
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
+            const files = fileInput.files;
             
-            document.getElementById('uploadStatus').innerText = "Procesando e indexando...";
+            if (files.length === 0) return alert("Selecciona archivos o una carpeta");
 
-            try {
-                const response = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
-                const data = await response.json();
-                document.getElementById('uploadStatus').innerText = `✅ ¡Éxito! ${data.filename} listo para buscar.`;
-            } catch (error) {
-                document.getElementById('uploadStatus').innerText = "❌ Error al cargar.";
+            const uploadStatus = document.getElementById('uploadStatus');
+            let successCount = 0;
+            let errorCount = 0;
+            
+            uploadStatus.innerText = "Procesando archivos... Por favor, espera.";
+
+            // Iteramos sobre todos los archivos de la carpeta
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const ext = file.name.split('.').pop().toLowerCase();
+                
+                // Ignoramos formatos no compatibles automáticamente
+                if (!['pdf', 'docx', 'txt', 'csv'].includes(ext)) {
+                    continue; 
+                }
+
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                uploadStatus.innerText = `Subiendo y procesando: ${file.name} (${i + 1}/${files.length})...`;
+
+                try {
+                    const response = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
+                    if (response.ok) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                    }
+                } catch (error) {
+                    errorCount++;
+                }
             }
+            
+            uploadStatus.innerText = `✅ Proceso finalizado. ${successCount} archivos indexados correctamente. ${errorCount > 0 ? '(' + errorCount + ' errores)' : ''}`;
         }
 
         async function performSearch() {
@@ -75,8 +99,7 @@
                 
                 resultsArea.innerHTML = "";
                 data.resultados.forEach(res => {
-                    // Si la distancia es mayor a 1.2 (aprox), el resultado suele ser ruido
-                    if (res.distancia < 1.2) { 
+                    if (res.distancia < 1.4) { // Margen de relevancia más amplio
                         resultsArea.innerHTML += `
                             <div class="result-card">
                                 <span class="filename">📄 ${res.archivo}</span>
