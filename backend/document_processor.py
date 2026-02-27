@@ -16,9 +16,12 @@ def extract_and_clean_pdf(file_path: str):
         if not text:
             continue
 
-        # Chunking: Dividimos en bloques de ~1000 caracteres
-        chunk_size = 1000
-        for i in range(0, len(text), chunk_size):
-            text_chunks.append(text[i:i+chunk_size])
+        chunk_size = 1500 
+        # Añadimos un solapamiento (overlap) para que no se corten frases a la mitad
+        overlap = 200
+        chunks = []
+        for i in range(0, len(text), chunk_size - overlap):
+            chunks.append(text[i:i + chunk_size])
+        return chunks
 
     return text_chunks

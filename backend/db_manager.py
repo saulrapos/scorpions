@@ -30,10 +30,10 @@ def add_documents_to_db(chunks, filename):
         ids=ids
     )
 
-def search_documents(query, n_results=3):
+def search_documents(query, n_results=5):
     """Busca los fragmentos usando IA local"""
     results = collection.query(
-        query_texts=[query], # Le pasamos el texto directamente
+        query_texts=[query],
         n_results=n_results
     )
 

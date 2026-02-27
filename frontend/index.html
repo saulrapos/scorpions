@@ -75,12 +75,14 @@
                 
                 resultsArea.innerHTML = "";
                 data.resultados.forEach(res => {
-                    resultsArea.innerHTML += `
-                        <div class="result-card">
-                            <span class="filename">📄 ${res.archivo}</span>
-                            <span class="score">Similitud: ${(1 - res.distancia).toFixed(2)}</span>
-                            <div class="text-content">${res.texto}</div>
-                        </div>`;
+                    // Si la distancia es mayor a 1.2 (aprox), el resultado suele ser ruido
+                    if (res.distancia < 1.2) { 
+                        resultsArea.innerHTML += `
+                            <div class="result-card">
+                                <span class="filename">📄 ${res.archivo}</span>
+                                <div class="text-content">${res.texto}</div>
+                            </div>`;
+                    }
                 });
             } catch (error) {
                 resultsArea.innerHTML = "❌ Error en la conexión con la IA.";
