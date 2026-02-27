@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scorpions - Inteligencia Documental</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 900px; margin: auto; padding: 40px; background: #f0f2f5; color: #333; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #1a73e8; border-bottom: 2px solid #1a73e8; padding-bottom: 10px; }
+        .upload-section, .search-section { margin-bottom: 30px; padding: 20px; border: 1px dashed #ccc; border-radius: 8px; }
+        input[type="text"] { width: 75%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 12px 20px; cursor: pointer; background: #1a73e8; color: white; border: none; border-radius: 5px; font-weight: bold; }
+        button:hover { background: #1557b0; }
+        .result-card { background: #fff; border-left: 5px solid #1a73e8; padding: 15px; margin-top: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .filename { font-weight: bold; color: #1a73e8; font-size: 0.9em; }
+        .score { float: right; font-size: 0.8em; color: #28a745; }
+        .text-content { margin-top: 10px; font-size: 0.95em; line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Nexus Scorpions</h1>
+        
+        <div class="upload-section">
+            <h3>Cargar Documentación (PDF)</h3>
+            <input type="file" id="fileInput">
+            <button onclick="uploadFile()">Indexar con IA</button>
+            <p id="uploadStatus" style="font-size: 0.8em;"></p>
+        </div>
+
+        <div class="search-section">
+            <h3>Buscador Semántico</h3>
+            <input type="text" id="searchInput" placeholder="Haz una pregunta sobre tus documentos...">
+            <button onclick="performSearch()">Consultar</button>
+        </div>
+
+        <div id="resultsArea">
+            </div>
+    </div>
+
+    <script>
+        const API_URL = "http://localhost:8000/api";
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files[0]) return alert("Selecciona un archivo");
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            document.getElementById('uploadStatus').innerText = "Procesando e indexando...";
+
+            try {
+                const response = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
+                const data = await response.json();
+                document.getElementById('uploadStatus').innerText = `✅ ¡Éxito! ${data.filename} listo para buscar.`;
+            } catch (error) {
+                document.getElementById('uploadStatus').innerText = "❌ Error al cargar.";
+            }
+        }
+
+        async function performSearch() {
+            const query = document.getElementById('searchInput').value;
+            const resultsArea = document.getElementById('resultsArea');
+            resultsArea.innerHTML = "Buscando en la base vectorial...";
+
+            try {
+                const response = await fetch(`${API_URL}/search`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pregunta: query })
+                });
+                const data = await response.json();
+                
+                resultsArea.innerHTML = "";
+                data.resultados.forEach(res => {
+                    resultsArea.innerHTML += `
+                        <div class="result-card">
+                            <span class="filename">📄 ${res.archivo}</span>
+                            <span class="score">Similitud: ${(1 - res.distancia).toFixed(2)}</span>
+                            <div class="text-content">${res.texto}</div>
+                        </div>`;
+                });
+            } catch (error) {
+                resultsArea.innerHTML = "❌ Error en la conexión con la IA.";
+            }
+        }
+    </script>
+</body>
+</html>
