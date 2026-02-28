@@ -1,29 +1,26 @@
-import os
 import chromadb
 from chromadb.utils import embedding_functions
 
-# 1. Iniciar ChromaDB en local
-chroma_client = chromadb.PersistentClient(path="./chroma_data")
+# 1. EL CAMBIO CLAVE: Usamos EphemeralClient para que la memoria sea temporal (en RAM)
+chroma_client = chromadb.EphemeralClient()
 
-# 2. Cargar el modelo GRATUITO recomendado por Merlin Software
-# La primera vez que ejecutes esto, tardará un poco porque descargará el modelo (~80MB)
+# 2. Cargar el modelo GRATUITO recomendado
 modelo_local = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
 
-# 3. Crear o cargar la colección usando el modelo local
+# 3. Crear la colección temporal
 collection = chroma_client.get_or_create_collection(
     name="documentos_hackathon",
     embedding_function=modelo_local
 )
 
 def add_documents_to_db(chunks, filename):
-    """Guarda los trozos de texto. ChromaDB generará los vectores automáticamente."""
+    """Guarda los trozos de texto en la memoria temporal."""
     if not chunks:
         return
 
     ids = [f"{filename}_chunk_{i}" for i in range(len(chunks))]
     metadatas = [{"filename": filename, "chunk_index": i} for i in range(len(chunks))]
 
-    # Al pasarle los documentos, Chroma usa el modelo local para vectorizarlos
     collection.add(
         documents=chunks,
         metadatas=metadatas,
@@ -32,6 +29,10 @@ def add_documents_to_db(chunks, filename):
 
 def search_documents(query, n_results=5):
     """Busca los fragmentos usando IA local"""
+    # Si la colección está vacía (acabamos de arrancar), evitamos que dé error
+    if collection.count() == 0:
+        return []
+
     results = collection.query(
         query_texts=[query],
         n_results=n_results

@@ -20,9 +20,9 @@
 <main class="max-w-4xl mx-auto mt-12 px-4">
 
     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mb-8">
-        <h2 class="text-lg font-semibold mb-4"><i class="fa-solid fa-cloud-arrow-up mr-2 text-blue-500"></i>1. Sube un documento</h2>
+        <h2 class="text-lg font-semibold mb-4"><i class="fa-solid fa-folder-open mr-2 text-blue-500"></i>1. Sube una Carpeta de Documentos</h2>
         <div class="flex items-center gap-4">
-            <input type="file" id="fileInput" accept=".pdf" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all"/>
+            <input type="file" id="fileInput" webkitdirectory directory multiple class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all"/>
             <button id="btnUpload" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full font-medium transition-colors whitespace-nowrap">
                 Subir e Indexar
             </button>
@@ -56,48 +56,60 @@
 <script>
     const API_URL = "http://127.0.0.1:8000";
 
-    // --- 1. LÓGICA DE SUBIDA ---
+    // --- 1. LÓGICA DE SUBIDA DE CARPETAS ---
     document.getElementById('btnUpload').addEventListener('click', async () => {
         const fileInput = document.getElementById('fileInput');
         const statusText = document.getElementById('uploadStatus');
         const btn = document.getElementById('btnUpload');
 
-        if (fileInput.files.length === 0) {
-            alert("Por favor, selecciona un PDF primero.");
+        const files = fileInput.files;
+        if (files.length === 0) {
+            alert("Por favor, selecciona una carpeta o archivos primero.");
             return;
         }
-
-        const formData = new FormData();
-        formData.append("file", fileInput.files[0]);
 
         btn.innerText = "Procesando IA...";
         btn.disabled = true;
         statusText.classList.remove('hidden');
         statusText.className = "text-sm mt-3 text-blue-600 font-medium animate-pulse";
-        statusText.innerText = "Leyendo documento y generando vectores...";
+        
+        let successCount = 0;
+        let errorCount = 0;
+        const formatosPermitidos = ['pdf', 'docx', 'txt', 'csv'];
 
-        try {
-            const response = await fetch(`${API_URL}/api/upload`, {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const ext = file.name.split('.').pop().toLowerCase();
+            
+            if (!formatosPermitidos.includes(ext)) continue; 
 
-            if (response.ok) {
-                statusText.className = "text-sm mt-3 text-emerald-600 font-medium";
-                statusText.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> ¡Listo! ${data.chunks_indexados} fragmentos indexados correctamente.`;
-            } else {
-                statusText.className = "text-sm mt-3 text-red-600 font-medium";
-                statusText.innerText = "Error: " + data.detail;
+            statusText.innerText = `Indexando: ${file.name} (${i + 1}/${files.length})...`;
+            
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const response = await fetch(`${API_URL}/api/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                }
+            } catch (error) {
+                errorCount++;
             }
-        } catch (error) {
-            statusText.className = "text-sm mt-3 text-red-600 font-medium";
-            statusText.innerText = "Error de conexión con el servidor. ¿Está encendido el backend?";
-        } finally {
-            btn.innerText = "Subir e Indexar";
-            btn.disabled = false;
-            fileInput.value = ""; // Limpiar input
         }
+
+        statusText.className = "text-sm mt-3 text-emerald-600 font-medium";
+        statusText.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> ¡Listo! ${successCount} archivos procesados con éxito.`;
+        
+        btn.innerText = "Subir e Indexar";
+        btn.disabled = false;
+        fileInput.value = ""; 
     });
 
     // --- 2. LÓGICA DE BÚSQUEDA ---
@@ -114,7 +126,7 @@
 
         if (!query.trim()) return;
 
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Buscando...';
         btn.disabled = true;
         resultsContainer.classList.add('hidden');
         resultsList.innerHTML = '';
@@ -130,17 +142,20 @@
 
             if (data.resultados && data.resultados.length > 0) {
                 data.resultados.forEach(res => {
-                    // Crear tarjeta para cada resultado
                     const card = document.createElement('div');
                     card.className = "bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow";
 
-                    // Calculamos un % de coincidencia falso/visual basado en la distancia para que quede "Pro"
                     const score = Math.max(1, 99 - (res.distancia * 50)).toFixed(0);
+                    
+                    let iconClass = "fa-file-alt text-slate-500";
+                    if(res.archivo.endsWith('.pdf')) iconClass = "fa-file-pdf text-red-500";
+                    else if(res.archivo.endsWith('.docx')) iconClass = "fa-file-word text-blue-500";
+                    else if(res.archivo.endsWith('.csv')) iconClass = "fa-file-csv text-green-600";
 
                     card.innerHTML = `
                         <div class="flex justify-between items-start mb-3">
                             <div class="flex items-center gap-2">
-                                <i class="fa-solid fa-file-pdf text-red-500 text-xl"></i>
+                                <i class="fa-solid ${iconClass} text-xl"></i>
                                 <span class="font-semibold text-slate-800">${res.archivo}</span>
                             </div>
                             <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full">
@@ -161,7 +176,7 @@
         } catch (error) {
             alert("Error al buscar. Comprueba la conexión con el backend.");
         } finally {
-            btn.innerText = "Buscar";
+            btn.innerHTML = 'Buscar';
             btn.disabled = false;
         }
     }
