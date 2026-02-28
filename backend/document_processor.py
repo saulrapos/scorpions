@@ -36,18 +36,26 @@ def extract_text(file_path: str) -> str:
     return clean_text(text)
 
 def extract_and_clean_document(file_path: str):
-    """Extrae, limpia y divide el documento en fragmentos (chunks)."""
+    """Extrae, limpia y divide el documento en fragmentos por PALABRAS (no caracteres)."""
     text = extract_text(file_path)
     if not text:
         return []
 
-    chunk_size = 1500 
-    overlap = 200
+    # Separamos todo el documento en una lista de palabras completas
+    palabras = text.split()
+    
+    # Configuramos el tamaño en PALABRAS (200 palabras son aprox. 1 párrafo largo)
+    chunk_size = 200 
+    overlap = 50  # Solapamos 50 palabras para no cortar ideas entre fragmentos
     chunks = []
     
-    # Bucle corregido para procesar todo el documento
-    for i in range(0, len(text), chunk_size - overlap):
-        chunk = text[i:i + chunk_size]
+    # Bucle mejorado que no corta palabras por la mitad
+    for i in range(0, len(palabras), chunk_size - overlap):
+        # Cogemos un bloque de 200 palabras
+        bloque_palabras = palabras[i:i + chunk_size]
+        # Las volvemos a unir en un solo texto con espacios
+        chunk = " ".join(bloque_palabras)
+        
         if chunk.strip():
             chunks.append(chunk)
             
