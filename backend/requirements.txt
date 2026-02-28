@@ -4,3 +4,4 @@ python-multipart
 pymupdf
 chromadb
 sentence-transformers
+python-docx
